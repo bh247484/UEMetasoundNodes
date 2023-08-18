@@ -45,7 +45,7 @@ namespace Metasound {
             const FInt32ReadRef& InCRatio,
             const FInt32ReadRef& InModIndex,
             const FFloatReadRef& InModEnv,
-            const FFloatReadRef& InAmpEnv);
+            const FAudioBufferReadRef& InAmpEnv);
 
         virtual FDataReferenceCollection GetInputs() const override;
         virtual FDataReferenceCollection GetOutputs() const override;
@@ -73,7 +73,7 @@ namespace Metasound {
         FFloatReadRef ModEnv;
         
         // Amp Env.
-        FFloatReadRef AmpEnv;
+        FAudioBufferReadRef AmpEnv;
         
     };
 

@@ -21,7 +21,7 @@ namespace Metasound
         const FInt32ReadRef& InCRatio,
         const FInt32ReadRef& InModIndex,
         const FFloatReadRef& InModEnv,
-        const FFloatReadRef& InAmpEnv)
+        const FAudioBufferReadRef& InAmpEnv)
         : AudioOutput(FAudioBufferWriteRef::CreateNew(InSettings))
         , Frequency(InFrequency)
         , SampleRate((float) InSettings.GetSampleRate())
@@ -45,7 +45,7 @@ namespace Metasound
                 TInputDataVertexModel<int32>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamCRatio), 1),
                 TInputDataVertexModel<int32>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamModIndex), 1),
                 TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamModEnv), 1.0f),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamAmpEnv), 1.0f)
+                TInputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamAmpEnv))
             ),
             FOutputVertexInterface(
                 TOutputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(OutParamAudio))
@@ -96,7 +96,7 @@ namespace Metasound
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamCRatio), FInt32ReadRef(CRatio));
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamModIndex), FInt32ReadRef(ModIndex));
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamModEnv), FFloatReadRef(ModEnv));
-        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamAmpEnv), FFloatReadRef(AmpEnv));
+        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamAmpEnv), FAudioBufferReadRef(AmpEnv));
 
         return InputDataReferences;
     }
@@ -126,7 +126,7 @@ namespace Metasound
         FInt32ReadRef CRatio = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<int32>(InputInterface, METASOUND_GET_PARAM_NAME(InParamCRatio), InParams.OperatorSettings);
         FInt32ReadRef ModIndex = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<int32>(InputInterface, METASOUND_GET_PARAM_NAME(InParamModIndex), InParams.OperatorSettings);
         FFloatReadRef ModEnv = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamModEnv), InParams.OperatorSettings);
-        FFloatReadRef AmpEnv = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamAmpEnv), InParams.OperatorSettings);
+        FAudioBufferReadRef AmpEnv = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<FAudioBuffer>(InputInterface, METASOUND_GET_PARAM_NAME(InParamAmpEnv), InParams.OperatorSettings);
 
         return MakeUnique<FFMGeneratorOperator>(InParams.OperatorSettings, Frequency, MRatio, CRatio, ModIndex, ModEnv, AmpEnv);
     }
@@ -136,9 +136,11 @@ namespace Metasound
         float* OutputAudio = AudioOutput->GetData();
         const int NumFrames = AudioOutput->Num();
         
+        const float* AmpEnvBuffer = AmpEnv->GetData();
+        
         for (int i = 0; i < NumFrames; ++i) {
-            // Short ciruit and save cycles if Amplitude Envelope at 0.
-            if ( *AmpEnv == 0 ) {
+            // Short ciruit and save cycles if Amplitude Envelope near 0.
+            if ( AmpEnvBuffer[i] < 0.000001f ) {
                 OutputAudio[i] = 0;
             }
             
@@ -147,7 +149,7 @@ namespace Metasound
             float modFreq = modAmp * FMath::Sin(modPhase);
             
             // Write out to buffer.
-            OutputAudio[i] = *AmpEnv * FMath::Sin(carrPhase);
+            OutputAudio[i] = AmpEnvBuffer[i] * FMath::Sin(carrPhase);
             
             float carrierFreq = *Frequency * *CRatio + modFreq;
             
