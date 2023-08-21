@@ -15,8 +15,12 @@ namespace Metasound
     // Implementation - Operator.
     FWaveFolderOperator::FWaveFolderOperator(
         const FOperatorSettings& InSettings,
-        const FAudioBufferReadRef& InAudioInput)
+        const FAudioBufferReadRef& InAudioInput,
+        const FFloatReadRef& InGain,
+        const FFloatReadRef& InFbDrive)
         : AudioInput(InAudioInput)
+        , Gain(InGain)
+        , FbDrive(InFbDrive)
         , SampleRate((float) InSettings.GetSampleRate())
         , AudioOutput(FAudioBufferWriteRef::CreateNew(InSettings))
     {
@@ -30,7 +34,9 @@ namespace Metasound
 
         static const FVertexInterface Interface(
             FInputVertexInterface(
-                TInputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamAudioInput))
+                TInputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamAudioInput)),
+                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamGain), -0.5f),
+                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamFbDrive), 0.9f)
             ),
             FOutputVertexInterface(
                 TOutputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(OutParamAudio))
@@ -53,7 +59,7 @@ namespace Metasound
                 1, // Major Version
                 0, // Minor Version
                 METASOUND_LOCTEXT("WaveFolderNodeDisplayName", "Wave Folder Node"),
-                METASOUND_LOCTEXT("WaveFolderNodeDesc", "A test gain node."),
+                METASOUND_LOCTEXT("WaveFolderNodeDesc", "A node to apply wavefolding and saturation to oscillators or other input sources."),
                 PluginAuthor,
                 PluginNodeMissingPrompt,
                 NodeInterface,
@@ -77,6 +83,8 @@ namespace Metasound
         FDataReferenceCollection InputDataReferences;
 
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamAudioInput), FAudioBufferReadRef(AudioInput));
+        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamGain), FFloatReadRef(Gain));
+        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamFbDrive), FFloatReadRef(FbDrive));
 
         return InputDataReferences;
     }
@@ -102,9 +110,10 @@ namespace Metasound
         const FInputVertexInterface& InputInterface = GetVertexInterface().GetInputInterface();
 
         FAudioBufferReadRef AudioIn = InputCollection.GetDataReadReferenceOrConstruct<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamAudioInput), InParams.OperatorSettings);
-//        FFloatReadRef PitchShift = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamPitchShift), InParams.OperatorSettings);
+        FFloatReadRef Gain = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamGain), InParams.OperatorSettings);
+        FFloatReadRef FbDrive = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamFbDrive), InParams.OperatorSettings);
 
-        return MakeUnique<FWaveFolderOperator>(InParams.OperatorSettings, AudioIn);
+        return MakeUnique<FWaveFolderOperator>(InParams.OperatorSettings, AudioIn, Gain, FbDrive);
     }
 
     // Primary node functionality
@@ -115,8 +124,8 @@ namespace Metasound
         const int NumFrames = AudioInput->Num();
         
         for (int i = 0; i < NumFrames; ++i) {
-            float satFactor = Audio::FastTanh(InputAudio[i]) + FbDrive * Audio::FastTanh(outputMinusOne);
-            float output = satFactor + Gain * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
+            float satFactor = Audio::FastTanh(InputAudio[i]) + *FbDrive * Audio::FastTanh(outputMinusOne);
+            float output = satFactor + *Gain * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
             
             OutputAudio[i] = output;
             outputMinusOne = output;
