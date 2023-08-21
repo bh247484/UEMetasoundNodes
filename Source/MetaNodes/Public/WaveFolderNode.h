@@ -13,7 +13,8 @@ namespace Metasound {
     namespace WaveFolder
     {
         METASOUND_PARAM(InParamAudioInput, "In", "Audio input.");
-        METASOUND_PARAM(InParamGain, "Gain", "Amount of saturation gain applied.");
+        METASOUND_PARAM(InParamDepth, "Depth", "Amount of saturation gain applied.");
+        METASOUND_PARAM(InParamFreq, "Frequency", "Saturation wave shape frequency.");
         METASOUND_PARAM(InParamFbDrive, "Drive", "Feedback drive factor.");
 
         METASOUND_PARAM(OutParamAudio, "Out", "Audio output.")
@@ -32,7 +33,8 @@ namespace Metasound {
 
         FWaveFolderOperator(const FOperatorSettings& InSettings,
             const FAudioBufferReadRef& InAudioInput,
-            const FFloatReadRef& InGain,
+            const FFloatReadRef& InDepth,
+            const FFloatReadRef& InFreq,
             const FFloatReadRef& InFbDrive);
 
         virtual FDataReferenceCollection GetInputs() const override;
@@ -43,7 +45,8 @@ namespace Metasound {
 
         // Params.
         FAudioBufferReadRef AudioInput;
-        FFloatReadRef Gain;
+        FFloatReadRef Depth;
+        FFloatReadRef Freq;
         FFloatReadRef FbDrive;
         
         float SampleRate = 48000.0f;

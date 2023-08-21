@@ -5,6 +5,7 @@
 // #include "MetasoundStandardNodesNames.h"     // StandardNodes namespace
 #include "MetasoundFacade.h"                         // FNodeFacade class, eliminates the need for a fair amount of boilerplate code
 #include "MetasoundParamHelper.h"            // METASOUND_PARAM and METASOUND_GET_PARAM family of macros
+#include <algorithm>
 
 // Required for ensuring the node is supported by all languages in engine. Must be unique per MetaSound.
 #define LOCTEXT_NAMESPACE "MetasoundStandardNodes_MetaSoundWaveFolderNode"
@@ -16,15 +17,16 @@ namespace Metasound
     FWaveFolderOperator::FWaveFolderOperator(
         const FOperatorSettings& InSettings,
         const FAudioBufferReadRef& InAudioInput,
-        const FFloatReadRef& InGain,
+        const FFloatReadRef& InDepth,
+        const FFloatReadRef& InFreq,
         const FFloatReadRef& InFbDrive)
         : AudioInput(InAudioInput)
-        , Gain(InGain)
+        , Depth(InDepth)
+        , Freq(InFreq)
         , FbDrive(InFbDrive)
         , SampleRate((float) InSettings.GetSampleRate())
         , AudioOutput(FAudioBufferWriteRef::CreateNew(InSettings))
     {
-        // Init logic if I need it.
     }
 
     // Helper function for constructing vertex interface
@@ -35,7 +37,8 @@ namespace Metasound
         static const FVertexInterface Interface(
             FInputVertexInterface(
                 TInputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamAudioInput)),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamGain), -0.5f),
+                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamDepth), 0.5f),
+                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamFreq), 0.5f),
                 TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamFbDrive), 0.9f)
             ),
             FOutputVertexInterface(
@@ -83,7 +86,8 @@ namespace Metasound
         FDataReferenceCollection InputDataReferences;
 
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamAudioInput), FAudioBufferReadRef(AudioInput));
-        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamGain), FFloatReadRef(Gain));
+        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamDepth), FFloatReadRef(Depth));
+        InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamFreq), FFloatReadRef(Freq));
         InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamFbDrive), FFloatReadRef(FbDrive));
 
         return InputDataReferences;
@@ -110,10 +114,11 @@ namespace Metasound
         const FInputVertexInterface& InputInterface = GetVertexInterface().GetInputInterface();
 
         FAudioBufferReadRef AudioIn = InputCollection.GetDataReadReferenceOrConstruct<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamAudioInput), InParams.OperatorSettings);
-        FFloatReadRef Gain = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamGain), InParams.OperatorSettings);
+        FFloatReadRef Depth = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamDepth), InParams.OperatorSettings);
+        FFloatReadRef Freq = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamFreq), InParams.OperatorSettings);
         FFloatReadRef FbDrive = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamFbDrive), InParams.OperatorSettings);
 
-        return MakeUnique<FWaveFolderOperator>(InParams.OperatorSettings, AudioIn, Gain, FbDrive);
+        return MakeUnique<FWaveFolderOperator>(InParams.OperatorSettings, AudioIn, Depth, Freq, FbDrive);
     }
 
     // Primary node functionality
@@ -124,10 +129,11 @@ namespace Metasound
         const int NumFrames = AudioInput->Num();
         
         for (int i = 0; i < NumFrames; ++i) {
-            float satFactor = Audio::FastTanh(InputAudio[i]) + *FbDrive * Audio::FastTanh(outputMinusOne);
-            float output = satFactor + *Gain * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
+            float fb = Audio::FastTanh(outputMinusOne);
+            float satFactor = Audio::FastTanh(InputAudio[i]) + *FbDrive * fb;
+            float output = satFactor - *Depth * FMath::Sin(UE_TWO_PI * InputAudio[i] * (std::max(*Freq, 0.00001f) * (SampleRate / 2)) / SampleRate);
             
-            OutputAudio[i] = output;
+            OutputAudio[i] = output / (1.0f + fb);
             outputMinusOne = output;
         }
     }
