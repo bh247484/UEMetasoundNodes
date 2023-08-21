@@ -17,6 +17,7 @@ namespace Metasound
         const FOperatorSettings& InSettings,
         const FAudioBufferReadRef& InAudioInput)
         : AudioInput(InAudioInput)
+        , SampleRate((float) InSettings.GetSampleRate())
         , AudioOutput(FAudioBufferWriteRef::CreateNew(InSettings))
     {
         // Init logic if I need it.
@@ -114,7 +115,7 @@ namespace Metasound
         const int NumFrames = AudioInput->Num();
         
         for (int i = 0; i < NumFrames; ++i) {
-            OutputAudio[i] = InputAudio[i] * 0.25f;
+            OutputAudio[i] = Audio::FastTanh(InputAudio[i]) + -0.2f * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
         }
     }
 

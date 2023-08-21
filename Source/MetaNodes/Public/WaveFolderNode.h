@@ -7,12 +7,6 @@
 #include "MetasoundParamHelper.h"
 
 namespace Metasound {
-    // Appease compiler.
-//    namespace StandardNodes
-//    {
-//        const FName Namespace = "UE";
-//        const FName AudioVariant = "Audio";
-//    }
 #define LOCTEXT_NAMESPACE "MetasoundStandardNodes_MetaSoundWaveFolderNode"
 
     // Vertex Names - define your node's inputs and outputs here
@@ -43,8 +37,8 @@ namespace Metasound {
 
     private:
 
-        // Inputs
         FAudioBufferReadRef AudioInput;
+        float SampleRate = 48000.0f;
 
         // Outputs
         FAudioBufferWriteRef AudioOutput;
