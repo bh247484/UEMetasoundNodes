@@ -115,7 +115,11 @@ namespace Metasound
         const int NumFrames = AudioInput->Num();
         
         for (int i = 0; i < NumFrames; ++i) {
-            OutputAudio[i] = Audio::FastTanh(InputAudio[i]) + -0.2f * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
+            float satFactor = Audio::FastTanh(InputAudio[i]) + FbDrive * Audio::FastTanh(outputMinusOne);
+            float output = satFactor + Gain * FMath::Sin(UE_TWO_PI * InputAudio[i] * (SampleRate / 2) / SampleRate);
+            
+            OutputAudio[i] = output;
+            outputMinusOne = output;
         }
     }
 

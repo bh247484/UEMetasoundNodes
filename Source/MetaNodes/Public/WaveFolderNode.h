@@ -39,6 +39,9 @@ namespace Metasound {
 
         FAudioBufferReadRef AudioInput;
         float SampleRate = 48000.0f;
+        float outputMinusOne = 0.0f;
+        float Gain = -0.5f;
+        float FbDrive = 0.9f;
 
         // Outputs
         FAudioBufferWriteRef AudioOutput;
