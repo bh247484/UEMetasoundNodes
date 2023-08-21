@@ -127,15 +127,65 @@ namespace Metasound
         const float* InputAudio = AudioInput->GetData();
         float* OutputAudio = AudioOutput->GetData();
         const int NumFrames = AudioInput->Num();
-        
+        const int OverSampFrames = NumFrames * 4;
+
+        Audio::FAlignedFloatBuffer oversampInput;
+        Audio::FAlignedFloatBuffer oversampOutput;
+        oversampInput.AddZeroed(OverSampFrames);
+        oversampOutput.SetNumUninitialized(OverSampFrames);
+
+        // Copy input buffer into oversampled buffer and pad with zeroes.
+        int overSampIndex = 0;
         for (int i = 0; i < NumFrames; ++i) {
+            oversampInput[overSampIndex] = InputAudio[i]; // 0
+            overSampIndex++;
+            oversampInput[overSampIndex] = 0.0f;
+            overSampIndex++;
+            oversampInput[overSampIndex] = 0.0f;
+            overSampIndex++;
+            oversampInput[overSampIndex] = 0.0f;
+            overSampIndex++;
+        }
+
+        // Lowpass to average out zero padding.
+        for (int i = 0; i < OverSampFrames; ++i) {
+
+        }
+
+        // Apply wavefolding and saturation.
+        for (int i = 0; i < OverSampFrames; ++i) {
             float fb = Audio::FastTanh(outputMinusOne);
-            float satFactor = Audio::FastTanh(InputAudio[i]) + *FbDrive * fb;
-            float output = satFactor - *Depth * FMath::Sin(UE_TWO_PI * InputAudio[i] * (std::max(*Freq, 0.00001f) * (SampleRate / 2)) / SampleRate);
-            
-            OutputAudio[i] = output / (1.0f + fb);
+            float satFactor = Audio::FastTanh(oversampInput[i]) + *FbDrive * fb;
+            float output = satFactor - *Depth * FMath::Sin(UE_TWO_PI * oversampInput[i] * (std::max(*Freq, 0.00001f) * (SampleRate / 2)) / SampleRate);
+
+            oversampOutput[i] = output / (1.0f + fb);
             outputMinusOne = output;
         }
+
+        // Filter aliasing from oversampled buffer.
+        for (int i = 0; i < OverSampFrames; ++i) {
+
+        }
+
+        // Downsample.
+        // Write every 4th sample from oversampled buffer to output.
+        overSampIndex = 0;
+        for (int i = 0; i < NumFrames; ++i) {
+            OutputAudio[i] = oversampOutput[overSampIndex];
+            overSampIndex += 4;
+        }
+        
+//        // -- Original --
+//        // Apply wavefolding and saturation.
+//        for (int i = 0; i < NumFrames; ++i) {
+//            float fb = Audio::FastTanh(outputMinusOne);
+//            float satFactor = Audio::FastTanh(InputAudio[i]) + *FbDrive * fb;
+//            float output = satFactor - *Depth * FMath::Sin(UE_TWO_PI * InputAudio[i] * (std::max(*Freq, 0.00001f) * (SampleRate / 2)) / SampleRate);
+//
+//            OutputAudio[i] = output / (1.0f + fb);
+//            outputMinusOne = output;
+//        }
+        
     }
 
     // Implementation - Facade.
