@@ -1,5 +1,5 @@
 # What is it?
-A custom FM Synth and Wavefolder dsp implemented in an Unreal Engine Metasound node, all packaged in a Unreal Engine plugin. There's also a Metasound asset (the 3 voice fm synth described later in the README) in the `Content/` folder which implements the custom Metasound nodes.
+Custom FM Synth and Wavefolder dsp implemented in an Unreal Engine Metasound node, all packaged in a Unreal Engine plugin. There's also a Metasound asset (the 3 voice fm synth described later in the README) in the `Content/` folder which implements the custom Metasound nodes.
 
 # DSP
 I created and implemented two different Metasound nodes, an FM Synth Tone Generator and a Nonlinear Wavefolder/Saturator. The `TestNode` is a simple hard coded gain node I used as a template for the other nodes.
