@@ -1,8 +1,8 @@
 # What is it?
-Custom FM Synth and Wavefolder dsp implemented in an Unreal Engine Metasound node, all packaged in a Unreal Engine plugin. There's also a Metasound asset (the 3 voice fm synth described later in the README) in the `Content/` folder which implements the custom Metasound nodes.
+A custom FM Synth and Wavefolder dsp implemented in an Unreal Engine Metasound node, all packaged in a Unreal Engine plugin. There's also a Metasound asset (the 3 voice fm synth described later in the README) in the `Content/` folder which implements the custom Metasound nodes.
 
 # DSP
-I created and implemented two different Metasound nodes, an FM Synth Tone Generator and a Nonlinear Wavefolder/Saturator.  The `TestNode` is a simple hard coded gain node I used as a template for the other nodes.
+I created and implemented two different Metasound nodes, an FM Synth Tone Generator and a Nonlinear Wavefolder/Saturator. The `TestNode` is a simple hard coded gain node I used as a template for the other nodes.
 
 Header declarations for the custom nodes are located in `Source/MetaNodes/Private/` and the cpp implementations are in `Source/MetaNodes/Public/`.
 
@@ -57,7 +57,9 @@ I fed the distance between the player character and the chrome marshmellow to a 
 I recorded a short piano improvisation to harmonically contextualize the synth sounds and break up the monotony of the footstep rhythm. The piano wav is triggered on `BeginPlay` in the level blueprint.
 
 The final result looks and sounds something like this.
+
 https://github.com/bh247484/UEMetasoundNodes/assets/57693937/fd559502-ec1f-4366-9dd6-f76a8906030e
+
 Attn: Be sure to unmute the above video. Github mutes embeds by default.
 
 The player can activate time dilation (slowmo) with a middle mouse click to vary their step frequency.
